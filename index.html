@@ -338,7 +338,8 @@
 const CREDENTIALS_SHEET_ID = "1qOlIgmXuvSSq1GVNYhHch9YnIurBCphsXAUd4NIlElA";
 const CREDENTIALS_GID = "0"; // change if data is on a different tab
 const CREDENTIALS_CSV_URL =
-  `https://docs.google.com/spreadsheets/d/1qOlIgmXuvSSq1GVNYhHch9YnIurBCphsXAUd4NIlElA/edit?gid=0#gid=0`;
+  `const CREDENTIALS_CSV_URL =
+  `https://docs.google.com/spreadsheets/d/${CREDENTIALS_SHEET_ID}/export?format=csv&gid=${CREDENTIALS_GID}`;
 
 /*
   Sheet layout expected (same sheet, 4 columns):
