@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nusrath Secondary School - Mark List Portal</title>
+<style>
+  @property --c1{ syntax:'<color>'; inherits:true; initial-value:#1e6fa8; }
+  @property --c2{ syntax:'<color>'; inherits:true; initial-value:#4fa8d8; }
+
+  :root{
+    --primary-dark:#155a87;
+    --primary:#1e6fa8;
+    --primary-light:#4fa8d8;
+    --accent:#f4a300;
+    --accent-soft:#ffd166;
+    --c1:#1e6fa8;
+    --c2:#4fa8d8;
+    --card-bg:#ffffff;
+    --text:#1a2436;
+    --muted:#64748b;
+    --input-bg:#ffffff;
+    --input-border:#dde3ea;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image:linear-gradient(135deg,var(--c1),var(--c2));
+    transition:--c1 1.4s ease, --c2 1.4s ease, background-color 1.4s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    position:relative;
+    overflow-x:hidden;
+  }
+
+  /* ---- ambient floating motes ---- */
+  .motes{ position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
+  .mote{
+    position:absolute; bottom:-10%;
+    width:6px;height:6px;border-radius:50%;
+    background:radial-gradient(circle, var(--accent-soft), transparent 70%);
+    opacity:0; animation:rise linear infinite;
+  }
+  @keyframes rise{
+    0%{ transform:translateY(0) translateX(0); opacity:0; }
+    10%{ opacity:.5; }
+    90%{ opacity:.3; }
+    100%{ transform:translateY(-115vh) translateX(var(--drift,20px)); opacity:0; }
+  }
+
+  .page-wrap{ position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; width:100%; }
+
+  /* ---- clock widget ---- */
+  .clock-widget{
+    display:flex; flex-direction:column; align-items:center;
+    margin-bottom:16px;
+    animation:fadeIn .5s ease-out;
+  }
+  .clock-face-wrap{
+    width:88px;height:88px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18), rgba(255,255,255,0.02) 60%);
+    border:2px solid var(--accent-soft);
+    box-shadow:0 6px 20px rgba(0,0,0,0.25), inset 0 0 12px rgba(0,0,0,0.15);
+    padding:4px;
+    transition:border-color 1.2s ease;
+  }
+  .clock-tick{ stroke:var(--accent-soft); stroke-width:1.4; transition:stroke 1.2s ease; }
+  .clock-tick.major{ stroke-width:2.2; stroke:#fff; }
+  .hand{ stroke-linecap:round; transform-origin:50px 50px; }
+  .hand-hour{ stroke:#fff; stroke-width:3.2; }
+  .hand-min{ stroke:#fff; stroke-width:2.2; }
+  .hand-sec{ stroke:var(--accent); stroke-width:1.2; }
+  .clock-center{ fill:var(--accent); }
+  .clock-label{
+    margin-top:8px; text-align:center; color:#fff;
+    text-shadow:0 1px 4px rgba(0,0,0,0.35);
+  }
+  .clock-time{ font-size:14px; font-weight:700; letter-spacing:.3px; }
+  .clock-period{ font-size:11px; opacity:.85; text-transform:uppercase; letter-spacing:1.5px; margin-top:1px; }
+
+  /* ---- card ---- */
+  .card{
+    background:var(--card-bg);
+    color:var(--text);
+    border-radius:14px;
+    box-shadow:0 20px 45px rgba(0,0,0,0.28);
+    width:100%;
+    max-width:430px;
+    padding:34px 30px 30px;
+    text-align:center;
+    animation:cardIn .5s cubic-bezier(.2,.9,.25,1);
+    transition:background-color .7s ease, color .7s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  @keyframes fadeIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  @keyframes cardIn{
+    from{opacity:0; transform:translateY(16px) scale(.97);}
+    to{opacity:1; transform:translateY(0) scale(1);}
+  }
+  @keyframes shake{
+    10%,90%{ transform:translateX(-1px); }
+    20%,80%{ transform:translateX(3px); }
+    30%,50%,70%{ transform:translateX(-6px); }
+    40%,60%{ transform:translateX(6px); }
+  }
+  .shake{ animation:shake .5s cubic-bezier(.36,.07,.19,.97); }
+
+  h1{ font-size:19px; color:var(--primary-dark); margin:4px 0 2px; line-height:1.3; transition:color .7s ease; }
+  h3{ font-size:13.5px; color:var(--muted); margin:2px 0 22px; font-weight:600; transition:color .7s ease; }
+
+  /* ---- tabs ---- */
+  .tabs{
+    position:relative;
+    display:flex;
+    background:rgba(0,0,0,0.045);
+    border-radius:10px;
+    padding:4px;
+    margin-bottom:22px;
+  }
+  .tab-btn{
+    flex:1; position:relative; z-index:2;
+    border:none; background:transparent; cursor:pointer;
+    padding:9px 6px; font-size:13px; font-weight:700; letter-spacing:.2px;
+    color:var(--muted); border-radius:8px;
+    transition:color .25s ease;
+  }
+  .tab-btn.active{ color:#fff; }
+  .tab-indicator{
+    position:absolute; top:4px; bottom:4px; left:4px;
+    width:calc(50% - 4px);
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    border-radius:8px;
+    transition:transform .3s cubic-bezier(.4,0,.2,1);
+    z-index:1;
+  }
+
+  .tab-panel{ animation:panelIn .3s ease-out; }
+  @keyframes panelIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .field{ text-align:left; margin-bottom:16px; }
+  .field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; font-weight:600; transition:color .7s ease; }
+  .field input{
+    width:100%; padding:11px 13px;
+    background:var(--input-bg); color:var(--text);
+    border:1.5px solid var(--input-border);
+    border-radius:8px; font-size:15px; outline:none;
+    transition:border-color .15s, background-color .7s ease, color .7s ease;
+  }
+  .field input:focus{ border-color:var(--primary); }
+
+  button.login-btn{
+    width:100%; padding:12px;
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    color:#fff; border:none; border-radius:8px;
+    font-size:15px; font-weight:700; cursor:pointer;
+    margin-top:6px; transition:filter .15s, transform .1s;
+    letter-spacing:.4px; position:relative; overflow:hidden;
+  }
+  button.login-btn:hover{ filter:brightness(1.08); }
+  button.login-btn:active{ transform:scale(.98); }
+  button.login-btn:disabled{ background:#9fb3c4; cursor:not-allowed; filter:none; }
+
+  .ripple{
+    position:absolute; border-radius:50%;
+    background:rgba(255,255,255,0.55);
+    transform:scale(0); animation:rippleAnim .55s ease-out;
+    pointer-events:none;
+  }
+  @keyframes rippleAnim{ to{ transform:scale(3.2); opacity:0; } }
+
+  .msg{ min-height:18px; font-size:13px; margin-top:12px; color:#c0392b; font-weight:600; }
+  .msg.success{ color:var(--primary); }
+
+  .panel-hint{ font-size:13px; color:var(--muted); font-weight:600; margin:0 0 14px; transition:color .7s ease; }
+
+  /* ---- class grids ---- */
+  .class-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
+    gap:12px; margin-top:10px;
+  }
+  .class-grid.small{ grid-template-columns:repeat(auto-fill, minmax(78px,1fr)); gap:10px; }
+  .class-btn{
+    display:block; background:#eef5fa; border:1.5px solid #d7e6ef;
+    border-radius:10px; padding:16px 8px; color:var(--primary-dark);
+    text-decoration:none; font-weight:700; font-size:15px;
+    cursor:pointer; transition:all .15s;
+  }
+  .class-grid.small .class-btn{ padding:12px 4px; font-size:13.5px; }
+  .class-btn:hover{ background:var(--primary); color:#fff; border-color:var(--primary); transform:translateY(-2px); }
+
+  /* ---- pin entry ---- */
+  .back-btn{
+    background:none; border:none; color:var(--muted); font-size:12.5px;
+    font-weight:700; cursor:pointer; margin-bottom:10px; padding:2px 0;
+  }
+  .back-btn:hover{ color:var(--primary); }
+  .pin-boxes{ display:flex; gap:10px; justify-content:center; margin:6px 0 4px; }
+  .pin-box{
+    width:52px; height:60px; text-align:center; font-size:24px; font-weight:700;
+    border:1.5px solid var(--input-border); border-radius:10px;
+    background:var(--input-bg); color:var(--text); outline:none;
+    transition:border-color .15s, transform .1s, background-color .7s ease, color .7s ease;
+    -webkit-text-security:disc;
+  }
+  .pin-box:focus{ border-color:var(--primary); transform:translateY(-1px); }
+
+  /* ---- Dashboard (after login) ---- */
+  .dashboard{ max-width:640px; }
+  .dash-header{ margin-bottom:20px; }
+  .logout-row{ margin-top:24px; text-align:center; }
+  .logout-btn{
+    background:none; border:1.5px solid #cdd6dd; color:var(--muted);
+    padding:8px 20px; border-radius:8px; font-size:13px; cursor:pointer; font-weight:600;
+  }
+  .logout-btn:hover{ border-color:#c0392b; color:#c0392b; }
+  .welcome-user{ font-size:13px; color:var(--muted); margin-bottom:6px; }
+  .hidden{ display:none !important; }
+  .spinner{
+    display:inline-block; width:14px; height:14px;
+    border:2px solid #fff; border-top-color:transparent;
+    border-radius:50%; animation:spin .7s linear infinite;
+    vertical-align:middle; margin-right:6px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---- Dawn / Night themes need light card text ---- */
+  body.theme-night .card, body.theme-dawn .card{
+    --card-bg:#151d33; --text:#eef1f8; --muted:#9fb0c9;
+    --input-bg:#101728; --input-border:#2c3a55;
+  }
+  body.theme-night .class-btn, body.theme-dawn .class-btn{
+    background:#121b30; border-color:#2c3a55; color:#eef1f8;
+  }
+  body.theme-night .tabs, body.theme-dawn .tabs{ background:rgba(255,255,255,0.06); }
+
+  @media (max-width:480px){
+    .pin-box{ width:44px; height:54px; font-size:20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="motes" id="motes"></div>
+
+<div class="page-wrap">
+
+  <div class="clock-widget">
+    <div class="clock-face-wrap">
+      <svg viewBox="0 0 100 100" width="100%" height="100%" id="clockSvg">
+        <g id="ticks"></g>
+        <line id="handHour" class="hand hand-hour" x1="50" y1="50" x2="50" y2="30"/>
+        <line id="handMin" class="hand hand-min" x1="50" y1="50" x2="50" y2="22"/>
+        <line id="handSec" class="hand hand-sec" x1="50" y1="50" x2="50" y2="18"/>
+        <circle class="clock-center" cx="50" cy="50" r="2.4"/>
+      </svg>
+    </div>
+    <div class="clock-label">
+      <div class="clock-time" id="clockTime">--:--:--</div>
+      <div class="clock-period" id="clockPeriod">&nbsp;</div>
+    </div>
+  </div>
+
+  <!-- ============== LOGIN CARD ============== -->
+  <div class="card" id="loginCard">
+    <h1>Nusrath Secondary School</h1>
+    <h3>First Term Examination 2026-27</h3>
+
+    <div class="tabs">
+      <button type="button" class="tab-btn active" id="tabStaffBtn" data-tab="staff">Staff Login</button>
+      <button type="button" class="tab-btn" id="tabClassBtn" data-tab="class">Class Login</button>
+      <div class="tab-indicator" id="tabIndicator"></div>
+    </div>
+
+    <!-- Staff panel -->
+    <div class="tab-panel" id="staffPanel">
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="login-btn" id="loginBtn">Login</button>
+        <div class="msg" id="loginMsg"></div>
+      </form>
+    </div>
+
+    <!-- Class panel -->
+    <div class="tab-panel hidden" id="classPanel">
+      <div id="classSelectView">
+        <p class="panel-hint">Select your class to continue</p>
+        <div class="class-grid small" id="classLoginGrid"></div>
+      </div>
+      <div id="classPinView" class="hidden">
+        <button type="button" class="back-btn" id="backToClasses">&lsaquo; Back to classes</button>
+        <p class="panel-hint" id="pinPrompt">Enter the 4-digit PIN</p>
+        <div class="pin-boxes" id="pinBoxes">
+          <input class="pin-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-i="0">
+          <input class="pin-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-i="1">
+          <input class="pin-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-i="2">
+          <input class="pin-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" data-i="3">
+        </div>
+        <div class="msg" id="pinMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== DASHBOARD CARD (staff, after login) ============== -->
+  <div class="card dashboard hidden" id="dashboardCard">
+    <div class="dash-header">
+      <h1>Nusrath Secondary School</h1>
+      <h3>First Term Examination 2026-27</h3>
+      <div class="welcome-user" id="welcomeUser"></div>
+    </div>
+
+    <div class="class-grid" id="classGrid"></div>
+
+    <div class="logout-row">
+      <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================================
+   CONFIGURATION
+   ========================================================================= */
+
+const CREDENTIALS_SHEET_ID = "1qOlIgmXuvSSq1GVNYhHch9YnIurBCphsXAUd4NIlElA";
+const CREDENTIALS_GID = "0"; // change if data is on a different tab
+const CREDENTIALS_CSV_URL =
+  `https://docs.google.com/spreadsheets/d/1qOlIgmXuvSSq1GVNYhHch9YnIurBCphsXAUd4NIlElA/edit?gid=0#gid=0`;
+
+/*
+  Sheet layout expected (same sheet, 4 columns):
+    A: Username    B: Password    C: Class    D: PIN
+    teacher1       pass123        1A          4521
+    teacher2       pass456        1B          7788
+    ...
+  - Columns A/B are used for Staff Login (one row per staff member).
+  - Columns C/D hold the 4-digit PIN for each class, one class per row,
+    all PINs living in the same column (D). Row count for C/D does not
+    need to match A/B - extra/blank cells are simply ignored.
+*/
+
+// ---- Class -> Google Sheet link map -------------------------------------
+const CLASS_LINKS = {
+  "1A":  "https://docs.google.com/spreadsheets/d/1Kx5WGO6PGtptIbz0l4uysxGX2oTuF1CbO8vWiq6vu_0/edit?usp=sharing",
+  "1B":  "https://docs.google.com/spreadsheets/d/1U5dsKNaxqOyD8AFKhyVM4pXh9ThSeRQLpYU1VfUxy-s/edit?usp=sharing",
+  "2A":  "https://docs.google.com/spreadsheets/d/1_qRf6hKYO58aPbs_BIV8OmPexa2GZz7djRm9RQ4fxnE/edit?usp=sharing",
+  "2B":  "https://docs.google.com/spreadsheets/d/1B0lFXzw6bMEZ8VyA0yfO9sGgylYp_vq7NvSMhOHMxAc/edit?usp=sharing",
+  "3A":  "https://docs.google.com/spreadsheets/d/12NjdYFkXNtpiQnQrF_iY7sZUnJtp3Zjses_mgD_2-Q0/edit?usp=sharing",
+  "3B":  "https://docs.google.com/spreadsheets/d/1cGGWuYJ2rVl6McXlPgiMVy-ZCEyeapf3oHwZjTeRk38/edit?usp=sharing",
+  "4A":  "https://docs.google.com/spreadsheets/d/1GVdRqcBRo9PYlWDJqubbcUntppihI_DDQyV00sTA980/edit?usp=sharing",
+  "4B":  "https://docs.google.com/spreadsheets/d/16vk-xQQXKlKo2XEvouErJh8M8LvIR_-5zXajB8sRYoM/edit?usp=sharing",
+  "5A":  "https://docs.google.com/spreadsheets/d/1DEiPG3cXOdirsRQnpSm5WSz8SS_O2DlTa7gzi4huMr4/edit?usp=sharing",
+  "5B":  "https://docs.google.com/spreadsheets/d/1L3u6iNUbp5Jcmduy5KqBQ5aELjVB1D8vb9bLdGEOD_Q/edit?usp=sharing",
+  "6A":  "https://docs.google.com/spreadsheets/d/1p6jd7SCYKvNpHA_U3tUBOSEkLnwZDJAHt6W2AaILcgg/edit?usp=sharing",
+  "7A":  "https://docs.google.com/spreadsheets/d/1rTpFL5RozQcRVhc0s3oHYMSFAFC3GBLSYLHSOaPNKVA/edit?usp=sharing",
+  "7B":  "https://docs.google.com/spreadsheets/d/18D59fte8_tZinIp5jEobAa-E9ZyHEgWw7FYnFkZAgtI/edit?usp=sharing",
+  "8A":  "https://docs.google.com/spreadsheets/d/1Cci97UTGb8RFFh9AOyri7qDa21YDID-u30sH28_F8I8/edit?usp=sharing",
+  "8B":  "https://docs.google.com/spreadsheets/d/1mLV09gSvEidLBkVW_lmf5a74sq5RLeNU-xBOTRKOv2A/edit?usp=sharing",
+  "9A":  "https://docs.google.com/spreadsheets/d/1l9XGc-bUKx1UMVamc7W5LSnFHHdDRP9TpHyNovErhcg/edit?usp=sharing",
+  "9B":  "https://docs.google.com/spreadsheets/d/1RZncy_BiTqTZnpHfCjqTczZX_kMlkQbyflMoGZgMAv4/edit?usp=sharing",
+  "10A": "https://docs.google.com/spreadsheets/d/1VnOksfryVLYe9tcQFp8KE6yhz9WsUNyBOxBZkQr7sFQ/edit?usp=sharing",
+  "10B": "https://docs.google.com/spreadsheets/d/11kzJm_vt6IVpVmtSMF5NwPtI5XywnsGMnf1NpxcRCMA/edit?usp=sharing",
+};
+
+/* =========================================================================
+   TIME-OF-DAY THEMES (colors mirror the sky outside, purely secular)
+   ========================================================================= */
+const THEMES = [
+  { key:"dawn",      label:"Dawn",      start:4,   end:6,    c1:"#2b2f77", c2:"#6a5acd", primary:"#4b4fa3", primaryDark:"#2b2f66", primaryLight:"#6a5acd", accent:"#f4b183" },
+  { key:"morning",   label:"Morning",   start:6,   end:11,   c1:"#1e6fa8", c2:"#4fa8d8", primary:"#1e6fa8", primaryDark:"#155a87", primaryLight:"#4fa8d8", accent:"#ffd166" },
+  { key:"midday",    label:"Midday",    start:11,  end:15.5, c1:"#0e7490", c2:"#22b8d8", primary:"#0e7490", primaryDark:"#0b5563", primaryLight:"#22b8d8", accent:"#f4a300" },
+  { key:"afternoon", label:"Afternoon", start:15.5,end:18,   c1:"#c9711b", c2:"#e8a33d", primary:"#b3651a", primaryDark:"#7a4310", primaryLight:"#e8a33d", accent:"#ffcf6b" },
+  { key:"dusk",      label:"Dusk",      start:18,  end:19.5, c1:"#7a2e5c", c2:"#c9572f", primary:"#8a3560", primaryDark:"#551f3d", primaryLight:"#c9572f", accent:"#ffb37b" },
+  { key:"night",     label:"Night",     start:19.5,end:28,   c1:"#0a0f2c", c2:"#1b2a52", primary:"#2b3a67", primaryDark:"#0a0f2c", primaryLight:"#3b4f8a", accent:"#8fa8ff" },
+];
+
+function getTheme(hourFloat){
+  let h = hourFloat;
+  if (h < 4) h += 24; // wrap pre-4am into Night
+  return THEMES.find(t => h >= t.start && h < t.end) || THEMES[1];
+}
+
+let currentThemeKey = null;
+function applyTheme(now){
+  const hourFloat = now.getHours() + now.getMinutes()/60;
+  const theme = getTheme(hourFloat);
+  if (theme.key === currentThemeKey) return;
+  currentThemeKey = theme.key;
+  document.body.classList.remove(...THEMES.map(t=>"theme-"+t.key));
+  document.body.classList.add("theme-"+theme.key);
+  const root = document.documentElement.style;
+  root.setProperty("--c1", theme.c1);
+  root.setProperty("--c2", theme.c2);
+  root.setProperty("--primary", theme.primary);
+  root.setProperty("--primary-dark", theme.primaryDark);
+  root.setProperty("--primary-light", theme.primaryLight);
+  root.setProperty("--accent", theme.accent);
+  document.getElementById("clockPeriod").textContent = theme.label;
+}
+
+/* =========================================================================
+   ANALOGUE CLOCK
+   ========================================================================= */
+function buildTicks(){
+  const g = document.getElementById("ticks");
+  for(let i=0;i<12;i++){
+    const angle = i*30;
+    const major = i % 3 === 0;
+    const r1 = major ? 36 : 38;
+    const r2 = 44;
+    const rad = (angle-90) * Math.PI/180;
+    const x1 = 50 + r1*Math.cos(rad), y1 = 50 + r1*Math.sin(rad);
+    const x2 = 50 + r2*Math.cos(rad), y2 = 50 + r2*Math.sin(rad);
+    const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",x1); line.setAttribute("y1",y1);
+    line.setAttribute("x2",x2); line.setAttribute("y2",y2);
+    line.setAttribute("class","clock-tick"+(major?" major":""));
+    g.appendChild(line);
+  }
+}
+buildTicks();
+
+const handHour = document.getElementById("handHour");
+const handMin = document.getElementById("handMin");
+const handSec = document.getElementById("handSec");
+const clockTimeEl = document.getElementById("clockTime");
+
+function tick(){
+  const now = new Date();
+  const h = now.getHours() % 12;
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  const hourDeg = (h + m/60) * 30;
+  const minDeg = (m + s/60) * 6;
+  const secDeg = s * 6;
+  handHour.style.transform = `rotate(${hourDeg}deg)`;
+  handMin.style.transform = `rotate(${minDeg}deg)`;
+  handSec.style.transform = `rotate(${secDeg}deg)`;
+  clockTimeEl.textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  applyTheme(now);
+}
+tick();
+setInterval(tick, 1000);
+
+/* =========================================================================
+   AMBIENT MOTES
+   ========================================================================= */
+(function spawnMotes(){
+  const wrap = document.getElementById("motes");
+  const count = 14;
+  for(let i=0;i<count;i++){
+    const m = document.createElement("div");
+    m.className = "mote";
+    const left = Math.random()*100;
+    const dur = 10 + Math.random()*12;
+    const delay = Math.random()*14;
+    const drift = (Math.random()*60-30)+"px";
+    m.style.left = left+"vw";
+    m.style.animationDuration = dur+"s";
+    m.style.animationDelay = delay+"s";
+    m.style.setProperty("--drift", drift);
+    wrap.appendChild(m);
+  }
+})();
+
+/* =========================================================================
+   BUTTON RIPPLE
+   ========================================================================= */
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".login-btn");
+  if(!btn) return;
+  const rect = btn.getBoundingClientRect();
+  const ripple = document.createElement("span");
+  const size = Math.max(rect.width, rect.height);
+  ripple.className = "ripple";
+  ripple.style.width = ripple.style.height = size+"px";
+  ripple.style.left = (e.clientX - rect.left - size/2)+"px";
+  ripple.style.top = (e.clientY - rect.top - size/2)+"px";
+  btn.appendChild(ripple);
+  setTimeout(()=>ripple.remove(), 550);
+});
+
+/* =========================================================================
+   CREDENTIALS FETCH / PARSE
+   ========================================================================= */
+function parseCSV(text) {
+  return text
+    .trim()
+    .split(/\r?\n/)
+    .map(line => line.split(",").map(cell => cell.trim().replace(/^"|"$/g, "")));
+}
+
+let credentialsCache = null;
+async function fetchCredentials(force) {
+  if (credentialsCache && !force) return credentialsCache;
+  const res = await fetch(CREDENTIALS_CSV_URL, { cache: "no-store" });
+  if (!res.ok) throw new Error("Could not load credentials sheet (" + res.status + ")");
+  const text = await res.text();
+  const rows = parseCSV(text).slice(1); // drop header row
+  const staff = rows
+    .filter(r => r[0] && r[1])
+    .map(r => ({ username: r[0], password: r[1] }));
+  const classPins = {};
+  rows.forEach(r => {
+    if (r[2] && r[3]) classPins[r[2].toUpperCase()] = r[3];
+  });
+  credentialsCache = { staff, classPins };
+  return credentialsCache;
+}
+
+/* =========================================================================
+   TAB SWITCHING
+   ========================================================================= */
+const tabStaffBtn = document.getElementById("tabStaffBtn");
+const tabClassBtn = document.getElementById("tabClassBtn");
+const tabIndicator = document.getElementById("tabIndicator");
+const staffPanel = document.getElementById("staffPanel");
+const classPanel = document.getElementById("classPanel");
+
+function switchTab(which){
+  const toClass = which === "class";
+  tabIndicator.style.transform = toClass ? "translateX(100%)" : "translateX(0)";
+  tabStaffBtn.classList.toggle("active", !toClass);
+  tabClassBtn.classList.toggle("active", toClass);
+  staffPanel.classList.toggle("hidden", toClass);
+  classPanel.classList.toggle("hidden", !toClass);
+}
+tabStaffBtn.addEventListener("click", () => switchTab("staff"));
+tabClassBtn.addEventListener("click", () => switchTab("class"));
+
+/* =========================================================================
+   STAFF LOGIN
+   ========================================================================= */
+const loginForm = document.getElementById("loginForm");
+const loginBtn = document.getElementById("loginBtn");
+const loginMsg = document.getElementById("loginMsg");
+const loginCard = document.getElementById("loginCard");
+const dashboardCard = document.getElementById("dashboardCard");
+const welcomeUser = document.getElementById("welcomeUser");
+const classGrid = document.getElementById("classGrid");
+const logoutBtn = document.getElementById("logoutBtn");
+
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  loginMsg.textContent = "";
+  loginBtn.disabled = true;
+  loginBtn.innerHTML = '<span class="spinner"></span>Checking...';
+
+  try {
+    const { staff } = await fetchCredentials();
+    const match = staff.some(r => r.username === username && r.password === password);
+
+    if (match) {
+      sessionStorage.setItem("nsr_logged_in", "1");
+      sessionStorage.setItem("nsr_username", username);
+      showDashboard(username);
+    } else {
+      loginMsg.textContent = "Invalid username or password.";
+      loginCard.classList.add("shake");
+      setTimeout(()=>loginCard.classList.remove("shake"), 500);
+    }
+  } catch (err) {
+    loginMsg.textContent = "Unable to verify login. Please check your internet connection.";
+    console.error(err);
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Login";
+  }
+});
+
+logoutBtn.addEventListener("click", () => {
+  sessionStorage.removeItem("nsr_logged_in");
+  sessionStorage.removeItem("nsr_username");
+  dashboardCard.classList.add("hidden");
+  loginCard.classList.remove("hidden");
+  loginForm.reset();
+  switchTab("staff");
+});
+
+function buildClassGrid() {
+  classGrid.innerHTML = "";
+  Object.keys(CLASS_LINKS).forEach(cls => {
+    const link = CLASS_LINKS[cls];
+    const a = document.createElement("a");
+    a.className = "class-btn";
+    a.textContent = cls;
+    if (link) {
+      a.href = link;
+      a.target = "_blank";
+      a.rel = "noopener";
+    } else {
+      a.href = "#";
+      a.style.opacity = "0.5";
+      a.style.cursor = "not-allowed";
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        alert("Link for class " + cls + " has not been added yet.");
+      });
+    }
+    classGrid.appendChild(a);
+  });
+}
+
+function showDashboard(username) {
+  loginCard.classList.add("hidden");
+  dashboardCard.classList.remove("hidden");
+  welcomeUser.textContent = "Logged in as: " + username;
+  buildClassGrid();
+}
+
+// Restore session on page reload
+window.addEventListener("DOMContentLoaded", () => {
+  if (sessionStorage.getItem("nsr_logged_in") === "1") {
+    showDashboard(sessionStorage.getItem("nsr_username") || "");
+  }
+});
+
+/* =========================================================================
+   CLASS (PIN) LOGIN
+   ========================================================================= */
+const classLoginGrid = document.getElementById("classLoginGrid");
+const classSelectView = document.getElementById("classSelectView");
+const classPinView = document.getElementById("classPinView");
+const backToClasses = document.getElementById("backToClasses");
+const pinPrompt = document.getElementById("pinPrompt");
+const pinMsg = document.getElementById("pinMsg");
+const pinBoxes = Array.from(document.querySelectorAll(".pin-box"));
+
+let selectedClass = null;
+
+function buildClassLoginGrid(){
+  classLoginGrid.innerHTML = "";
+  Object.keys(CLASS_LINKS).forEach(cls => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "class-btn";
+    btn.textContent = cls;
+    btn.addEventListener("click", () => openPinEntry(cls));
+    classLoginGrid.appendChild(btn);
+  });
+}
+buildClassLoginGrid();
+
+function openPinEntry(cls){
+  selectedClass = cls;
+  pinPrompt.textContent = `Enter the 4-digit PIN for Class ${cls}`;
+  pinMsg.textContent = "";
+  pinMsg.className = "msg";
+  pinBoxes.forEach(b => { b.value = ""; b.disabled = false; });
+  classSelectView.classList.add("hidden");
+  classPinView.classList.remove("hidden");
+  pinBoxes[0].focus();
+}
+
+backToClasses.addEventListener("click", () => {
+  classPinView.classList.add("hidden");
+  classSelectView.classList.remove("hidden");
+  selectedClass = null;
+});
+
+pinBoxes.forEach((box, idx) => {
+  box.addEventListener("input", () => {
+    box.value = box.value.replace(/[^0-9]/g, "").slice(0,1);
+    if (box.value && idx < pinBoxes.length-1) pinBoxes[idx+1].focus();
+    if (pinBoxes.every(b => b.value.length === 1)) verifyPin();
+  });
+  box.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace" && !box.value && idx > 0) pinBoxes[idx-1].focus();
+  });
+});
+
+async function verifyPin(){
+  const pin = pinBoxes.map(b => b.value).join("");
+  pinMsg.textContent = "";
+  pinBoxes.forEach(b => b.disabled = true);
+  try {
+    const { classPins } = await fetchCredentials();
+    const expected = classPins[selectedClass.toUpperCase()];
+    if (expected && pin === expected) {
+      pinMsg.className = "msg success";
+      pinMsg.textContent = "PIN verified. Opening mark list...";
+      const link = CLASS_LINKS[selectedClass];
+      if (link) {
+        window.open(link, "_blank", "noopener");
+      } else {
+        pinMsg.className = "msg";
+        pinMsg.textContent = "Link for this class has not been added yet.";
+      }
+      setTimeout(() => {
+        pinBoxes.forEach(b => { b.value=""; b.disabled = false; });
+        classPinView.classList.add("hidden");
+        classSelectView.classList.remove("hidden");
+      }, 900);
+    } else {
+      pinMsg.className = "msg";
+      pinMsg.textContent = "Incorrect PIN. Please try again.";
+      classPinView.classList.add("shake");
+      setTimeout(()=>classPinView.classList.remove("shake"), 500);
+      pinBoxes.forEach(b => { b.value=""; b.disabled = false; });
+      pinBoxes[0].focus();
+    }
+  } catch (err) {
+    pinMsg.textContent = "Unable to verify PIN. Check your internet connection.";
+    pinBoxes.forEach(b => b.disabled = false);
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
