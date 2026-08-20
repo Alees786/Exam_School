@@ -194,6 +194,31 @@
   .class-grid.small .class-btn{ padding:12px 4px; font-size:13.5px; }
   .class-btn:hover{ background:var(--primary); color:#fff; border-color:var(--primary); transform:translateY(-2px); }
 
+  /* ---- part (I / II) buttons ---- */
+  .part-buttons{ display:flex; gap:10px; margin-top:6px; }
+  .part-btn{
+    flex:1; text-decoration:none; display:flex; align-items:center; justify-content:center;
+  }
+  .part-btn.disabled{ opacity:.55; cursor:not-allowed; pointer-events:none; background:#9fb3c4 !important; }
+
+  /* ---- staff dashboard class cards (Part I / Part II) ---- */
+  .class-card{
+    background:#eef5fa; border:1.5px solid #d7e6ef; border-radius:10px;
+    padding:12px 10px; display:flex; flex-direction:column; gap:8px; align-items:center;
+    transition:background-color .7s ease, border-color .7s ease;
+  }
+  .class-card .class-name{ font-weight:700; color:var(--primary-dark); font-size:15px; transition:color .7s ease; }
+  .class-card .card-part-row{ display:flex; gap:6px; width:100%; }
+  .class-card .card-part-link{
+    flex:1; text-align:center; text-decoration:none; font-size:11.5px; font-weight:700;
+    padding:7px 4px; border-radius:6px; background:var(--primary); color:#fff;
+    transition:filter .15s;
+  }
+  .class-card .card-part-link:hover{ filter:brightness(1.1); }
+  .class-card .card-part-link.disabled{ background:#c9d3da; cursor:not-allowed; pointer-events:none; }
+  body.theme-night .class-card, body.theme-dawn .class-card{ background:#121b30; border-color:#2c3a55; }
+  body.theme-night .class-card .class-name, body.theme-dawn .class-card .class-name{ color:#eef1f8; }
+
   /* ---- pin entry ---- */
   .back-btn{
     background:none; border:none; color:var(--muted); font-size:12.5px;
@@ -310,6 +335,14 @@
         </div>
         <div class="msg" id="pinMsg"></div>
       </div>
+      <div id="classResultView" class="hidden">
+        <button type="button" class="back-btn" id="backFromResult">&lsaquo; Back to classes</button>
+        <p class="panel-hint" id="resultPrompt">Choose a part</p>
+        <div class="part-buttons">
+          <a class="login-btn part-btn" id="part1Btn" target="_blank" rel="noopener">PART - I</a>
+          <a class="login-btn part-btn" id="part2Btn" target="_blank" rel="noopener">PART - II</a>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -352,8 +385,9 @@ const CREDENTIALS_CSV_URL =
     need to match A/B - extra/blank cells are simply ignored.
 */
 
-// ---- Class -> Google Sheet link map -------------------------------------
-const CLASS_LINKS = {
+// ---- Class -> Google Sheet link maps -------------------------------------
+// PART - I: your existing mark-list links (unchanged, moved here as-is).
+const CLASS_LINKS_PART1 = {
   "1A":  "https://docs.google.com/spreadsheets/d/1Kx5WGO6PGtptIbz0l4uysxGX2oTuF1CbO8vWiq6vu_0/edit?usp=sharing",
   "1B":  "https://docs.google.com/spreadsheets/d/1CISvHA8RAbLuq_Pv_xanCIbxfe0FoKcOYwQXORFdcew/edit?usp=sharing",
   "2A":  "https://docs.google.com/spreadsheets/d/1oXrIz2rAaO4BfO1yUXmGtlsHRNCqifDZIfBRuR29NdE/edit?usp=sharing",
@@ -374,6 +408,34 @@ const CLASS_LINKS = {
   "10A": "https://docs.google.com/spreadsheets/d/12QFx3fe6bunngDFLXIXB3DSyuQF1fxogMW7AyRcISn8/edit?usp=sharing",
   "10B": "https://docs.google.com/spreadsheets/d/1ffXKx2LzzzlyFmuOGIaAag3lkO6cajp_BhOOwQ1d9Uo/edit?usp=sharing",
 };
+
+// PART - II: paste each class's Part-II mark-list link here. Leave "" for
+// any class whose Part-II link isn't ready yet — the button will show as
+// disabled until you add it.
+const CLASS_LINKS_PART2 = {
+  "1A":  "https://docs.google.com/spreadsheets/d/1z0e9O0P-XsR_sSNxg9PVYqPLmAygbwPSsUb46f_z73U/edit?usp=sharing",
+  "1B":  "https://docs.google.com/spreadsheets/d/1o9N8_G5U3x0yHbSAYb9cFHUULAXViUcdGKn892w_W1c/edit?usp=sharing",
+  "2A":  "https://docs.google.com/spreadsheets/d/1uQmAj4_hy0HcX1O2MjarEEphPL4Z5QAojV2qSv5VLf8/edit?usp=sharing",
+  "2B":  "https://docs.google.com/spreadsheets/d/1w3UcyYwaZ14HAXq5ADA96BUkzqmvptZH9AGtQbhk-IQ/edit?usp=sharing",
+  "3A":  "https://docs.google.com/spreadsheets/d/1f8nXZoqxQS5NW8Ug3R9DRH2wPEB_KpvLe60SwaQDyF4/edit?usp=sharing",
+  "3B":  "https://docs.google.com/spreadsheets/d/1GwB3DmSUDv1hJy2leJp0uTm4pz5ihf844dNm73mk3C0/edit?usp=sharing",
+  "4A":  "https://docs.google.com/spreadsheets/d/1rrdh3eH16bu8oZ_ln2vDQUPls7rnwu-WmQl6DdeyHHM/edit?usp=sharing",
+  "4B":  "https://docs.google.com/spreadsheets/d/1jSig5Enn1SUTJPRk5U3orDuurcfS0576YBDnFiWOn60/edit?usp=sharing",
+  "5A":  "https://docs.google.com/spreadsheets/d/1BYTglTL3BFAKELf93RWeBsO9w9v_f3USVyGNL4Bz71k/edit?usp=sharing",
+  "5B":  "https://docs.google.com/spreadsheets/d/1F1xvGOUPf5WhCnnvunsHje97A0DoMRdhqQjthAvcQLk/edit?usp=sharing",
+  "6A":  "https://docs.google.com/spreadsheets/d/1k4MmqVzjSZEEUkAapW1XyGPnJyJ8lABt_g6U0oHCKiU/edit?usp=sharing",
+  "7A":  "https://docs.google.com/spreadsheets/d/19ff9vs7yJaqsPddnpIgaHEeucyIkVXUapobgdKY2VWg/edit?usp=sharing",
+  "7B":  "https://docs.google.com/spreadsheets/d/1lZ4iE1AZLDXp81jX7Urg24WA7q9EySm55VqVg6Aw-gY/edit?usp=sharing",
+  "8A":  "https://docs.google.com/spreadsheets/d/149BnvfyH3MbyU56j7OApWIMDFVPNcZsJk9PjpSoeGv8/edit?usp=sharing",
+  "8B":  "https://docs.google.com/spreadsheets/d/1lvg31LhqnRFcTasIwwkzP68Y43PqdG6rUtl5LZ-_i1E/edit?usp=sharing",
+  "9A":  "https://docs.google.com/spreadsheets/d/10VfSeY8HK98o6OVMwE3JzsaYh3dMTPet_qKWK7MoSHY/edit?usp=sharing",
+  "9B":  "https://docs.google.com/spreadsheets/d/13hKN6x2tDjprtNmMY-8B4ALj-iXx4P32vgyzyR5B4Q0/edit?usp=sharing",
+  "10A": "https://docs.google.com/spreadsheets/d/1Zd7mNxdkZaVe6g0_ZCbw8Cmi50hbUkB46HqzdwV6sJY/edit?usp=sharing",
+  "10B": "https://docs.google.com/spreadsheets/d/1v_4ylh6o_4ACmuFCGya5st7FOxwXFE-VyjFOn_zda7M/edit?usp=sharing",
+};
+
+// List of class names, derived from Part I (used to build the grids below).
+const CLASS_NAMES = Object.keys(CLASS_LINKS_PART1);
 
 /* =========================================================================
    TIME-OF-DAY THEMES (colors mirror the sky outside, purely secular)
@@ -595,26 +657,45 @@ logoutBtn.addEventListener("click", () => {
 
 function buildClassGrid() {
   classGrid.innerHTML = "";
-  Object.keys(CLASS_LINKS).forEach(cls => {
-    const link = CLASS_LINKS[cls];
-    const a = document.createElement("a");
-    a.className = "class-btn";
-    a.textContent = cls;
-    if (link) {
-      a.href = link;
-      a.target = "_blank";
-      a.rel = "noopener";
-    } else {
-      a.href = "#";
-      a.style.opacity = "0.5";
-      a.style.cursor = "not-allowed";
-      a.addEventListener("click", (e) => {
-        e.preventDefault();
-        alert("Link for class " + cls + " has not been added yet.");
-      });
-    }
-    classGrid.appendChild(a);
+  CLASS_NAMES.forEach(cls => {
+    const link1 = CLASS_LINKS_PART1[cls];
+    const link2 = CLASS_LINKS_PART2[cls];
+
+    const card = document.createElement("div");
+    card.className = "class-card";
+
+    const name = document.createElement("div");
+    name.className = "class-name";
+    name.textContent = cls;
+    card.appendChild(name);
+
+    const row = document.createElement("div");
+    row.className = "card-part-row";
+    row.appendChild(makePartLink(cls, "PART - I", link1));
+    row.appendChild(makePartLink(cls, "PART - II", link2));
+    card.appendChild(row);
+
+    classGrid.appendChild(card);
   });
+}
+
+function makePartLink(cls, label, link) {
+  const a = document.createElement("a");
+  a.className = "card-part-link";
+  a.textContent = label;
+  if (link) {
+    a.href = link;
+    a.target = "_blank";
+    a.rel = "noopener";
+  } else {
+    a.href = "#";
+    a.classList.add("disabled");
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      alert(label + " link for class " + cls + " has not been added yet.");
+    });
+  }
+  return a;
 }
 
 function showDashboard(username) {
@@ -641,12 +722,17 @@ const backToClasses = document.getElementById("backToClasses");
 const pinPrompt = document.getElementById("pinPrompt");
 const pinMsg = document.getElementById("pinMsg");
 const pinBoxes = Array.from(document.querySelectorAll(".pin-box"));
+const classResultView = document.getElementById("classResultView");
+const resultPrompt = document.getElementById("resultPrompt");
+const part1Btn = document.getElementById("part1Btn");
+const part2Btn = document.getElementById("part2Btn");
+const backFromResult = document.getElementById("backFromResult");
 
 let selectedClass = null;
 
 function buildClassLoginGrid(){
   classLoginGrid.innerHTML = "";
-  Object.keys(CLASS_LINKS).forEach(cls => {
+  CLASS_NAMES.forEach(cls => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "class-btn";
@@ -663,6 +749,7 @@ function openPinEntry(cls){
   pinMsg.textContent = "";
   pinMsg.className = "msg";
   pinBoxes.forEach(b => { b.value = ""; b.disabled = false; });
+  classResultView.classList.add("hidden");
   classSelectView.classList.add("hidden");
   classPinView.classList.remove("hidden");
   pinBoxes[0].focus();
@@ -673,6 +760,27 @@ backToClasses.addEventListener("click", () => {
   classSelectView.classList.remove("hidden");
   selectedClass = null;
 });
+
+backFromResult.addEventListener("click", () => {
+  classResultView.classList.add("hidden");
+  classSelectView.classList.remove("hidden");
+  selectedClass = null;
+});
+
+function setPartButton(btn, link, label) {
+  if (link) {
+    btn.href = link;
+    btn.classList.remove("disabled");
+    btn.onclick = null;
+  } else {
+    btn.href = "#";
+    btn.classList.add("disabled");
+    btn.onclick = (e) => {
+      e.preventDefault();
+      alert(label + " link for this class has not been added yet.");
+    };
+  }
+}
 
 pinBoxes.forEach((box, idx) => {
   box.addEventListener("input", () => {
@@ -694,19 +802,15 @@ async function verifyPin(){
     const expected = classPins[selectedClass.toUpperCase()];
     if (expected && pin === expected) {
       pinMsg.className = "msg success";
-      pinMsg.textContent = "PIN verified. Opening mark list...";
-      const link = CLASS_LINKS[selectedClass];
-      if (link) {
-        window.open(link, "_blank", "noopener");
-      } else {
-        pinMsg.className = "msg";
-        pinMsg.textContent = "Link for this class has not been added yet.";
-      }
+      pinMsg.textContent = "PIN verified.";
+      resultPrompt.textContent = `Class ${selectedClass} — choose a part`;
+      setPartButton(part1Btn, CLASS_LINKS_PART1[selectedClass], "PART - I");
+      setPartButton(part2Btn, CLASS_LINKS_PART2[selectedClass], "PART - II");
       setTimeout(() => {
         pinBoxes.forEach(b => { b.value=""; b.disabled = false; });
         classPinView.classList.add("hidden");
-        classSelectView.classList.remove("hidden");
-      }, 900);
+        classResultView.classList.remove("hidden");
+      }, 500);
     } else {
       pinMsg.className = "msg";
       pinMsg.textContent = "Incorrect PIN. Please try again.";
